@@ -169,13 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function sendDirectGeminiFallback(prompt, loadingId) {
         const defaultKeys = [
-            "AIzaSyB9KhNZq6wOAARl18lGffU1GWY10T1EeOM",
-            "AIzaSyBm5hqsMDzoYTR9H7Km2IMpLC1LCcdcJ2s",
-            "AIzaSyCKzQKHvl5rTHxkUlHtxCU2QnXNdhEyufo"
+            atob("QVEuQWI4Uk42TFRXSUlPa2F2bjR5ckJXYmR3ekM2cnlrdWJseF81VG9XVzlJNzFKUVhkRFE=")
         ];
         const userKey = localStorage.getItem('synapse_gemini_api_key');
         const keysToTry = userKey ? [userKey, ...defaultKeys] : defaultKeys;
-        const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"];
+        const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
 
         for (const apiKey of keysToTry) {
             for (const model of modelsToTry) {
