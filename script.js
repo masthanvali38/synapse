@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.querySelector('.chat-input');
     const submitBtn = document.querySelector('.submit-btn');
     const newChatBtn = document.querySelectorAll('.nav-item')[0];
@@ -167,91 +167,143 @@
         }
     }
 
+    async function sendDirectGeminiFallback(prompt, loadingId) {
+        const defaultKeys = [
+            "AIzaSyB9KhNZq6wOAARl18lGffU1GWY10T1EeOM",
+            "AIzaSyBm5hqsMDzoYTR9H7Km2IMpLC1LCcdcJ2s",
+            "AIzaSyCKzQKHvl5rTHxkUlHtxCU2QnXNdhEyufo"
+        ];
+        const userKey = localStorage.getItem('synapse_gemini_api_key');
+        const keysToTry = userKey ? [userKey, ...defaultKeys] : defaultKeys;
+        const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"];
+
+        for (const apiKey of keysToTry) {
+            for (const model of modelsToTry) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }]
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (aiText) {
+                            document.getElementById(loadingId)?.remove();
+                            conversationHistory.push({ sender: 'ai', text: aiText });
+                            saveCurrentChat();
+                            addMessageToUI(aiText, 'ai');
+                            chatAttachments = [];
+                            renderChatAttachments();
+                            return true;
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`Direct Gemini API call failed for model ${model}:`, err);
+                }
+            }
+        }
+
+        document.getElementById(loadingId)?.remove();
+        addMessageToUI('AI Service temporarily unavailable. Please check your connection.', 'error');
+        return false;
+    }
+
     function connectWebSocket() {
         const statusIndicator = document.getElementById('connection-status');
         const statusText = statusIndicator?.querySelector('.status-text');
         
         if (pingInterval) clearInterval(pingInterval);
 
-        const userId = currentUser ? currentUser.user_id : 'guest';
-        ws = new WebSocket(`ws://127.0.0.1:8001/ws/chat/${sessionId}?user_id=${userId}`);
+        const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        const customWsUrl = localStorage.getItem('synapse_ws_url');
         
-        ws.onopen = () => {
-            console.log('Connected to Session:', sessionId);
+        if (!isLocalhost && !customWsUrl) {
             if (statusIndicator) statusIndicator.classList.add('connected');
-            if (statusText) statusText.textContent = 'Connected';
+            if (statusText) statusText.textContent = 'Cloud Mode';
+            return;
+        }
 
-            // Heartbeat ping every 15s to keep connection alive
-            pingInterval = setInterval(() => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'ping' }));
-                }
-            }, 15000);
-        };
-        
-        let currentStreamingText = "";
-        let currentStreamingId = null;
+        const userId = currentUser ? currentUser.user_id : 'guest';
+        const targetWsUrl = customWsUrl || `ws://127.0.0.1:8001/ws/chat/${sessionId}?user_id=${userId}`;
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'pong') return; // Heartbeat pong
-
-            const loadings = document.querySelectorAll('.message.loading-message');
+        try {
+            ws = new WebSocket(targetWsUrl);
             
-            if (data.chunk) {
-                // Remove loading on first chunk
-                if (loadings.length > 0) loadings[loadings.length - 1].remove();
+            ws.onopen = () => {
+                console.log('Connected to Session:', sessionId);
+                if (statusIndicator) statusIndicator.classList.add('connected');
+                if (statusText) statusText.textContent = 'Connected';
+
+                pingInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'ping' }));
+                    }
+                }, 15000);
+            };
+            
+            let currentStreamingText = "";
+            let currentStreamingId = null;
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'pong') return; // Heartbeat pong
+
+                const loadings = document.querySelectorAll('.message.loading-message');
                 
-                if (!currentStreamingId) {
-                    currentStreamingId = 'streaming-' + Date.now();
-                    addMessageToUI('', 'ai', currentStreamingId);
+                if (data.chunk) {
+                    if (loadings.length > 0) loadings[loadings.length - 1].remove();
+                    
+                    if (!currentStreamingId) {
+                        currentStreamingId = 'streaming-' + Date.now();
+                        addMessageToUI('', 'ai', currentStreamingId);
+                        currentStreamingText = "";
+                    }
+                    
+                    const msgElem = document.getElementById(currentStreamingId);
+                    if (msgElem) {
+                        currentStreamingText += data.chunk;
+                        msgElem.textContent = currentStreamingText;
+                        const container = document.querySelector('.messages-container');
+                        if (container) container.scrollTop = container.scrollHeight;
+                    }
+                } else if (data.end) {
+                    const msgElem = document.getElementById(currentStreamingId);
+                    if (msgElem) {
+                        msgElem.innerHTML = marked.parse(currentStreamingText);
+                        conversationHistory.push({ sender: 'ai', text: currentStreamingText });
+                        saveCurrentChat();
+                    }
+                    currentStreamingId = null;
                     currentStreamingText = "";
-                }
-                
-                const msgElem = document.getElementById(currentStreamingId);
-                if (msgElem) {
-                    currentStreamingText += data.chunk;
-                    msgElem.textContent = currentStreamingText;
-                    const container = document.querySelector('.messages-container');
-                    if (container) container.scrollTop = container.scrollHeight;
-                }
-            } else if (data.end) {
-                const msgElem = document.getElementById(currentStreamingId);
-                if (msgElem) {
-                    msgElem.innerHTML = marked.parse(currentStreamingText);
-                    conversationHistory.push({ sender: 'ai', text: currentStreamingText });
+                } else if (data.response) {
+                    if (loadings.length > 0) loadings[loadings.length - 1].remove();
+                    conversationHistory.push({ sender: 'ai', text: data.response });
                     saveCurrentChat();
+                    addMessageToUI(data.response, 'ai');
+                } else if (data.error) {
+                    if (loadings.length > 0) loadings[loadings.length - 1].remove();
+                    addMessageToUI('Error: ' + data.error, 'error');
                 }
-                currentStreamingId = null;
-                currentStreamingText = "";
-            } else if (data.response) {
-                // Fallback for non-streaming
-                if (loadings.length > 0) loadings[loadings.length - 1].remove();
-                conversationHistory.push({ sender: 'ai', text: data.response });
-                saveCurrentChat();
-                addMessageToUI(data.response, 'ai');
-            } else if (data.error) {
-                if (loadings.length > 0) loadings[loadings.length - 1].remove();
-                addMessageToUI('Error: ' + data.error, 'error');
-            }
-        };
-        
-        ws.onclose = (e) => {
-            console.log('WebSocket closed. Reconnecting...', e);
-            if (pingInterval) clearInterval(pingInterval);
-            if (statusIndicator) statusIndicator.classList.remove('connected');
-            if (statusText) statusText.textContent = 'Disconnected';
+            };
             
-            setTimeout(() => {
-                if (!ws || ws.readyState === WebSocket.CLOSED) connectWebSocket();
-            }, 2000);
-        };
+            ws.onclose = (e) => {
+                console.log('WebSocket closed.', e);
+                if (pingInterval) clearInterval(pingInterval);
+                if (statusIndicator) statusIndicator.classList.remove('connected');
+                if (statusText) statusText.textContent = 'Disconnected';
+            };
 
-        ws.onerror = (err) => {
-            console.error('WebSocket error:', err);
-            if (statusIndicator) statusIndicator.classList.remove('connected');
-            if (statusText) statusText.textContent = 'Connection Error';
-        };
+            ws.onerror = (err) => {
+                console.warn('WebSocket error:', err);
+                if (statusIndicator) statusIndicator.classList.remove('connected');
+                if (statusText) statusText.textContent = 'Cloud Mode';
+            };
+        } catch (err) {
+            console.warn('WebSocket creation error:', err);
+        }
     }
 
     let handleNewChatAction = (e) => {
@@ -310,7 +362,7 @@
             addMessageToUI('typing...', 'loading', loadingId);
             
             let attempts = 0;
-            const trySend = () => {
+            const trySend = async () => {
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     const messageData = {
                         prompt: prompt,
@@ -319,14 +371,13 @@
                     ws.send(JSON.stringify(messageData));
                     chatAttachments = [];
                     renderChatAttachments();
-                } else if (attempts < 5) {
+                } else if (attempts < 2 && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
                     attempts++;
                     console.log(`WebSocket reconnecting attempt ${attempts}...`);
                     if (!ws || ws.readyState === WebSocket.CLOSED) connectWebSocket();
-                    setTimeout(trySend, 800);
+                    setTimeout(trySend, 400);
                 } else {
-                    document.getElementById(loadingId)?.remove();
-                    addMessageToUI('Error: Backend connection lost. Please refresh.', 'error');
+                    await sendDirectGeminiFallback(prompt, loadingId);
                 }
             };
             trySend();
