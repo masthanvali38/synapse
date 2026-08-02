@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+google-genai
+pydantic
+crawl4ai
+Pillow
+PyPDF2
