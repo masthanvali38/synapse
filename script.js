@@ -402,6 +402,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // View Switching Logic
+    const chatView = document.getElementById('chat-view');
+    const converterView = document.getElementById('converter-view');
+    const navConverter = document.getElementById('nav-converter');
+
     // Brand Dropdown & Menu Switching Logic
     const brandDropdownBtn = document.getElementById('brand-dropdown-btn');
     const brandMenu = document.getElementById('brand-menu');
@@ -438,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function switchView(viewName) {
+        if (!chatView || !converterView) return;
         if (viewName === 'converter') {
             chatView.style.display = 'none';
             converterView.style.display = 'flex';
