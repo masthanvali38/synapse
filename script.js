@@ -442,7 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function switchView(viewName) {
-        if (!chatView || !converterView) return;
         if (viewName === 'converter') {
             chatView.style.display = 'none';
             converterView.style.display = 'flex';
