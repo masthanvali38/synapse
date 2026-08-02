@@ -402,19 +402,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // View Switching Logic
-    const chatView = document.getElementById('chat-view');
-    const converterView = document.getElementById('converter-view');
-    const navConverter = document.getElementById('nav-converter');
+    // Brand Dropdown & Menu Switching Logic
+    const brandDropdownBtn = document.getElementById('brand-dropdown-btn');
+    const brandMenu = document.getElementById('brand-menu');
+    const menuItemChat = document.getElementById('menu-item-chat');
+    const menuItemConverter = document.getElementById('menu-item-converter');
+
+    if (brandDropdownBtn && brandMenu) {
+        brandDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            brandMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!brandMenu.contains(e.target) && !brandDropdownBtn.contains(e.target)) {
+                brandMenu.classList.remove('show');
+            }
+        });
+    }
+
+    if (menuItemChat) {
+        menuItemChat.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchView('chat');
+            if (brandMenu) brandMenu.classList.remove('show');
+        });
+    }
+
+    if (menuItemConverter) {
+        menuItemConverter.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchView('converter');
+            if (brandMenu) brandMenu.classList.remove('show');
+        });
+    }
 
     function switchView(viewName) {
         if (viewName === 'converter') {
             chatView.style.display = 'none';
             converterView.style.display = 'flex';
-            navConverter.classList.add('active');
+            if (navConverter) navConverter.classList.add('active');
         } else {
             chatView.style.display = 'flex';
             converterView.style.display = 'none';
-            navConverter.classList.remove('active');
+            if (navConverter) navConverter.classList.remove('active');
         }
     }
 
@@ -422,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navConverter.addEventListener('click', (e) => {
             e.preventDefault();
             switchView('converter');
+            closeMobileSidebar();
         });
     }
 
@@ -429,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const originalNewChatAction = handleNewChatAction;
     handleNewChatAction = (e) => {
         switchView('chat');
+        closeMobileSidebar();
         originalNewChatAction(e);
     };
 
@@ -641,6 +674,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    async function clientSideImageConvert(file, targetFormat) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    if (targetFormat === 'jpg' || targetFormat === 'jpeg') {
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    ctx.drawImage(img, 0, 0);
+                    let mimeType = 'image/jpeg';
+                    if (targetFormat === 'png') mimeType = 'image/png';
+                    else if (targetFormat === 'webp') mimeType = 'image/webp';
+                    
+                    canvas.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error('Canvas conversion failed'));
+                    }, mimeType, 0.92);
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    }
+
     if (startConvertBtn) {
         startConvertBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
@@ -649,24 +714,34 @@ document.addEventListener('DOMContentLoaded', () => {
             startConvertBtn.disabled = true;
             conversionStatus.style.display = 'block';
             progressBar.style.width = '30%';
-            statusMessage.textContent = 'Uploading and processing...';
+            statusMessage.textContent = 'Processing file...';
 
             const formData = new FormData();
             formData.append('file', selectedFile);
             formData.append('target_format', targetFormat);
 
             try {
-                const response = await fetch('http://localhost:8000/api/convert', {
-                    method: 'POST',
-                    body: formData
-                });
+                let blob = null;
+                try {
+                    const response = await fetch('http://localhost:8000/api/convert', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (response.ok) {
+                        blob = await response.blob();
+                    }
+                } catch (fetchErr) {
+                    console.warn('Backend convert fetch failed, attempting client-side conversion:', fetchErr);
+                }
 
-                if (response.ok) {
+                if (!blob && selectedFile.type.startsWith('image/')) {
+                    statusMessage.textContent = 'Converting in browser...';
+                    blob = await clientSideImageConvert(selectedFile, targetFormat);
+                }
+
+                if (blob) {
                     progressBar.style.width = '100%';
                     statusMessage.textContent = 'Conversion complete! Downloading...';
-                    
-                    // Handle file download
-                    const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     const fileName = selectedFile.name.split('.')[0] + '.' + targetFormat;
@@ -675,14 +750,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
-                    
-                    setTimeout(() => {
-                        startConvertBtn.disabled = false;
-                        statusMessage.textContent = 'Done!';
-                    }, 2000);
                 } else {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Conversion failed');
+                    alert('Conversion failed. Please try an image file (PNG/JPG/WEBP).');
                 }
             } catch (err) {
                 console.error('Conversion error:', err);
