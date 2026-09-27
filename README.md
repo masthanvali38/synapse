@@ -1,141 +1,102 @@
-# Synapse — AI-Powered Developer Workspace
+# Synapse — AI-Powered Workspace
 
-<p align="center">
-  <strong>One intelligent workspace for AI conversations, file conversion, and chat management.</strong>
-</p>
+## Overview
 
-<p align="center">
-  <a href="https://synapse-blush-tau.vercel.app/">
-    <img src="https://img.shields.io/badge/Live%20Demo-Synapse-black?style=for-the-badge&logo=vercel" alt="Live Demo">
-  </a>
-  <img src="https://img.shields.io/badge/AI-Powered-blue?style=for-the-badge" alt="AI Powered">
-  <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" alt="Status">
-</p>
----
+Synapse is an AI-powered web workspace designed to bring AI conversations, file conversion, and chat management into a single platform.
 
-## 📌 Overview
+The application provides users with an intuitive interface for interacting with AI, managing conversations, searching previous chats, merging related chats, and working with files.
 
-**Synapse** is an AI-powered digital workspace designed to bring useful productivity and developer-oriented tools together in a single interface.
-
-Instead of switching between multiple applications for conversations, file conversion, and chat management, Synapse provides these capabilities through one unified workspace.
-
-The platform provides an AI chat experience along with tools for converting files, searching previous conversations, and combining multiple chats into a single conversation.
+The goal of Synapse is to reduce context switching and provide a centralized workspace for AI-powered productivity.
 
 ---
 
-## 🎯 Problem Statement
+## Problem Statement
 
-Modern developers and students often use multiple tools for:
+Users often switch between multiple applications to:
 
-- AI-assisted conversations
-- Managing previous chats
-- Searching conversation history
-- Converting files between formats
-- Organizing information from multiple conversations
+- Interact with AI assistants
+- Search previous conversations
+- Organize different chats
+- Combine information from multiple conversations
+- Convert files
+- Manage AI-assisted workflows
 
-Switching between different platforms can make these workflows fragmented and inefficient.
-
-### Our Solution
-
-Synapse brings these capabilities together into a centralized AI workspace where users can interact with AI, manage conversations, and perform useful file operations from one place.
+This fragmented workflow can make information difficult to organize and reuse.
 
 ---
 
-## ✨ Key Features
+## Solution
 
-### 🤖 AI Chat
+Synapse brings these capabilities together into one unified AI workspace.
+
+Users can interact with AI, manage their conversations, search their chat history, merge conversations, and access file utilities from a single application.
+
+---
+
+## Key Features
+
+### AI Chat
 
 Interact with an AI assistant through a simple conversational interface.
 
 - Ask questions using natural language
-- Get AI-assisted responses
+- Receive AI-generated responses
 - Continue conversations within the workspace
-- Designed for productivity and developer workflows
+- Maintain separate conversations for different topics
 
-### 🔐 Multiple Sign-In Options
+### Authentication
 
-Synapse provides multiple authentication options, including:
+Synapse provides multiple authentication options for accessing the platform.
 
-- Google sign-in
-- Email-based sign-in
-- Mobile-number sign-in
+Supported sign-in methods include:
 
-This provides users with flexible ways to access the platform.
+- Google
+- Email
+- Mobile number
 
-### 📁 File Converter
+### File Converter
 
-Convert files through an easy drag-and-drop interface.
-
-**Features include:**
-
-- Drag-and-drop file upload
-- File picker
-- Folder selection
-- Target-format selection
-- File conversion workflow
-
-### 🔄 Mix Chats
-
-Combine multiple conversations into a single chat.
+Synapse provides a dedicated file-conversion workflow.
 
 Users can:
 
-1. Select multiple conversations
+- Upload files
+- Drag and drop files
+- Select files from their device
+- Select a target format
+- Convert files through the application
+
+### Mix Chats
+
+The Mix Chats feature allows users to combine multiple conversations.
+
+Users can:
+
+1. Select multiple chats
 2. Choose a new chat title
-3. Merge the selected chats
-4. Continue working with the combined context
+3. Merge the selected conversations
+4. Continue working with the combined information
 
-This is useful when information is distributed across different conversations.
+This is useful when related information is distributed across multiple conversations.
 
-### 🔎 Search Chats
+### Search Chats
 
-Search through previous conversations using:
+Users can search their previous conversations and quickly find relevant information from their chat history.
 
-- Chat titles
-- Message content
+### Centralized Workspace
 
-This makes it easier to retrieve previously discussed information.
-
-### ☁️ Cloud Deployment
-
-Synapse is deployed using **Vercel**, making the application accessible through a public web URL.
-
----
-
-## 🧠 IBM Bob Integration / Development
-
-This project was developed with the assistance of **IBM Bob**, IBM's AI-powered software development partner.
-
-IBM Bob supports software-development workflows such as understanding codebases, generating and modifying code, debugging, documentation, testing, and other software-development tasks. :contentReference[oaicite:2]{index=2}
-
-In this project, IBM Bob was used as an AI development companion to support the development workflow and accelerate implementation.
-
-> IBM Bob was used as a development assistant; the final application, design decisions, implementation, and validation remain part of the project team's work.
-
----
-
-## 🏗️ Application Workflow
+Synapse brings its major features together into one workspace:
 
 ```text
-                    ┌─────────────────────┐
-                    │       Synapse       │
-                    │   AI Workspace      │
-                    └──────────┬──────────┘
-                               │
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-          ▼                    ▼                    ▼
-    ┌───────────┐       ┌─────────────┐      ┌────────────┐
-    │ AI Chat   │       │ File        │      │ Chat       │
-    │           │       │ Converter   │      │ Management │
-    └─────┬─────┘       └──────┬──────┘      └─────┬──────┘
-          │                    │                    │
-          │                    │             ┌──────┴──────┐
-          │                    │             │             │
-          │                    │             ▼             ▼
-          │                    │        Mix Chats     Search Chats
-          │                    │
-          └────────────────────┴────────────────────────────┐
-                                                             │
-                                                             ▼
-                                                   User Productivity
+                    SYNAPSE
+                AI-Powered Workspace
+                        |
+        +---------------+---------------+
+        |               |               |
+        v               v               v
+     AI Chat       File Converter    Chat Management
+                                        |
+                                +-------+-------+
+                                |               |
+                                v               v
+                           Mix Chats       Search Chats
