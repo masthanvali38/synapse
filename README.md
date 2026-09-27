@@ -11,14 +11,6 @@
   <img src="https://img.shields.io/badge/AI-Powered-blue?style=for-the-badge" alt="AI Powered">
   <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" alt="Status">
 </p>
-
----
-
-## 🌐 Live Demo
-
-**Try Synapse:**  
-https://synapse-blush-tau.vercel.app/
-
 ---
 
 ## 📌 Overview
